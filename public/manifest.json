@@ -1,0 +1,138 @@
+{
+  "title": "Setu Product catelougue FInal",
+  "pdf": "catalogue.pdf",
+  "pageCount": 26,
+  "aspectRatio": 0.7071,
+  "pages": [
+    {
+      "index": 1,
+      "src": "pages/page-001.webp",
+      "thumb": "pages/thumbs/page-001.webp"
+    },
+    {
+      "index": 2,
+      "src": "pages/page-002.webp",
+      "thumb": "pages/thumbs/page-002.webp"
+    },
+    {
+      "index": 3,
+      "src": "pages/page-003.webp",
+      "thumb": "pages/thumbs/page-003.webp"
+    },
+    {
+      "index": 4,
+      "src": "pages/page-004.webp",
+      "thumb": "pages/thumbs/page-004.webp"
+    },
+    {
+      "index": 5,
+      "src": "pages/page-005.webp",
+      "thumb": "pages/thumbs/page-005.webp"
+    },
+    {
+      "index": 6,
+      "src": "pages/page-006.webp",
+      "thumb": "pages/thumbs/page-006.webp"
+    },
+    {
+      "index": 7,
+      "src": "pages/page-007.webp",
+      "thumb": "pages/thumbs/page-007.webp"
+    },
+    {
+      "index": 8,
+      "src": "pages/page-008.webp",
+      "thumb": "pages/thumbs/page-008.webp"
+    },
+    {
+      "index": 9,
+      "src": "pages/page-009.webp",
+      "thumb": "pages/thumbs/page-009.webp"
+    },
+    {
+      "index": 10,
+      "src": "pages/page-010.webp",
+      "thumb": "pages/thumbs/page-010.webp"
+    },
+    {
+      "index": 11,
+      "src": "pages/page-011.webp",
+      "thumb": "pages/thumbs/page-011.webp"
+    },
+    {
+      "index": 12,
+      "src": "pages/page-012.webp",
+      "thumb": "pages/thumbs/page-012.webp"
+    },
+    {
+      "index": 13,
+      "src": "pages/page-013.webp",
+      "thumb": "pages/thumbs/page-013.webp"
+    },
+    {
+      "index": 14,
+      "src": "pages/page-014.webp",
+      "thumb": "pages/thumbs/page-014.webp"
+    },
+    {
+      "index": 15,
+      "src": "pages/page-015.webp",
+      "thumb": "pages/thumbs/page-015.webp"
+    },
+    {
+      "index": 16,
+      "src": "pages/page-016.webp",
+      "thumb": "pages/thumbs/page-016.webp"
+    },
+    {
+      "index": 17,
+      "src": "pages/page-017.webp",
+      "thumb": "pages/thumbs/page-017.webp"
+    },
+    {
+      "index": 18,
+      "src": "pages/page-018.webp",
+      "thumb": "pages/thumbs/page-018.webp"
+    },
+    {
+      "index": 19,
+      "src": "pages/page-019.webp",
+      "thumb": "pages/thumbs/page-019.webp"
+    },
+    {
+      "index": 20,
+      "src": "pages/page-020.webp",
+      "thumb": "pages/thumbs/page-020.webp"
+    },
+    {
+      "index": 21,
+      "src": "pages/page-021.webp",
+      "thumb": "pages/thumbs/page-021.webp"
+    },
+    {
+      "index": 22,
+      "src": "pages/page-022.webp",
+      "thumb": "pages/thumbs/page-022.webp"
+    },
+    {
+      "index": 23,
+      "src": "pages/page-023.webp",
+      "thumb": "pages/thumbs/page-023.webp"
+    },
+    {
+      "index": 24,
+      "src": "pages/page-024.webp",
+      "thumb": "pages/thumbs/page-024.webp"
+    },
+    {
+      "index": 25,
+      "src": "pages/page-025.webp",
+      "thumb": "pages/thumbs/page-025.webp"
+    },
+    {
+      "index": 26,
+      "src": "pages/page-026.webp",
+      "thumb": "pages/thumbs/page-026.webp"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "name": "setu-flipbook",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Realistic page-turn flipbook viewer for the Setu product catalogue PDF",
+  "scripts": {
+    "prerender": "node scripts/prerender.mjs",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^0.1.85",
+    "pdfjs-dist": "^4.10.38",
+    "puppeteer-core": "^25.4.0",
+    "sharp": "^0.34.4",
+    "vite": "^7.1.12"
+  },
+  "dependencies": {
+    "page-flip": "^2.0.7"
+  }
+}

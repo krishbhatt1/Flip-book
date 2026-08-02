@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Setu &middot; The Collection Book</title>
+    <meta name="description" content="Setu Marble and Handicrafts — The Collection Book. Architectural Expressions." />
+    <meta name="theme-color" content="#12100e" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="preload" as="image" href="pages/page-001.webp" />
+  </head>
+  <body>
+    <div class="app" id="app">
+      <!-- Loading -->
+      <div class="loader" id="loader">
+        <div class="loader__mark">SETU</div>
+        <div class="loader__bar"><span id="loaderFill"></span></div>
+        <div class="loader__pct" id="loaderPct">0%</div>
+      </div>
+
+      <!-- Thumbnail drawer -->
+      <aside class="thumbs" id="thumbs" aria-label="Page thumbnails" aria-hidden="true">
+        <header class="thumbs__head">
+          <span>Pages</span>
+          <button class="icon-btn icon-btn--sm" id="thumbsClose" title="Close" aria-label="Close thumbnails">
+            <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </header>
+        <div class="thumbs__grid" id="thumbsGrid"></div>
+      </aside>
+
+      <!-- Stage -->
+      <main class="stage" id="stage">
+        <button class="nav-arrow nav-arrow--prev" id="navPrev" title="Previous page (←)" aria-label="Previous page">
+          <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
+        </button>
+
+        <div class="stage__viewport" id="viewport">
+          <div class="book-wrap" id="bookWrap">
+            <div class="book" id="book"></div>
+          </div>
+        </div>
+
+        <button class="nav-arrow nav-arrow--next" id="navNext" title="Next page (→)" aria-label="Next page">
+          <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" /></svg>
+        </button>
+      </main>
+
+      <!-- Toolbar -->
+      <footer class="toolbar" id="toolbar">
+        <div class="toolbar__group">
+          <button class="icon-btn" id="btnThumbs" title="Table of contents" aria-label="Table of contents">
+            <svg viewBox="0 0 24 24"><path d="M3 5h7v6H3zM14 5h7v6h-7zM3 13h7v6H3zM14 13h7v6h-7z" /></svg>
+          </button>
+          <button class="icon-btn" id="btnSound" title="Sound on/off" aria-label="Toggle sound">
+            <svg viewBox="0 0 24 24" class="ico-sound-on"><path d="M11 5L6 9H3v6h3l5 4V5z" /><path d="M15.5 8.5a5 5 0 010 7M18.5 5.5a9 9 0 010 13" /></svg>
+            <svg viewBox="0 0 24 24" class="ico-sound-off"><path d="M11 5L6 9H3v6h3l5 4V5z" /><path d="M22 9l-6 6M16 9l6 6" /></svg>
+          </button>
+        </div>
+
+        <div class="toolbar__group toolbar__group--center">
+          <button class="icon-btn" id="btnFirst" title="First page (Home)" aria-label="First page">
+            <svg viewBox="0 0 24 24"><path d="M18 17l-5-5 5-5M11 17l-5-5 5-5" /></svg>
+          </button>
+          <button class="icon-btn" id="btnPrev" title="Previous page (←)" aria-label="Previous page">
+            <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
+          </button>
+
+          <div class="pager">
+            <input
+              class="pager__input"
+              id="pageInput"
+              type="text"
+              inputmode="numeric"
+              value="1"
+              aria-label="Current page"
+            />
+            <span class="pager__sep">/</span>
+            <span class="pager__total" id="pageTotal">–</span>
+          </div>
+
+          <button class="icon-btn" id="btnNext" title="Next page (→)" aria-label="Next page">
+            <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" /></svg>
+          </button>
+          <button class="icon-btn" id="btnLast" title="Last page (End)" aria-label="Last page">
+            <svg viewBox="0 0 24 24"><path d="M6 17l5-5-5-5M13 17l5-5-5-5" /></svg>
+          </button>
+        </div>
+
+        <div class="toolbar__group toolbar__group--end">
+          <button class="icon-btn" id="btnAuto" title="Auto play" aria-label="Auto play">
+            <svg viewBox="0 0 24 24" class="ico-play"><path d="M7 4l13 8-13 8V4z" /></svg>
+            <svg viewBox="0 0 24 24" class="ico-pause"><path d="M8 5v14M16 5v14" /></svg>
+          </button>
+          <button class="icon-btn" id="btnZoomOut" title="Zoom out (−)" aria-label="Zoom out">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="M8 11h6M20 20l-3.5-3.5" /></svg>
+          </button>
+          <span class="zoom-level" id="zoomLevel">100%</span>
+          <button class="icon-btn" id="btnZoomIn" title="Zoom in (+)" aria-label="Zoom in">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="M8 11h6M11 8v6M20 20l-3.5-3.5" /></svg>
+          </button>
+          <button class="icon-btn" id="btnShare" title="Share" aria-label="Share">
+            <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" /></svg>
+          </button>
+          <a class="icon-btn" id="btnDownload" href="catalogue.pdf" download title="Download PDF" aria-label="Download PDF">
+            <svg viewBox="0 0 24 24"><path d="M12 3v12M7 11l5 5 5-5M4 20h16" /></svg>
+          </a>
+          <button class="icon-btn" id="btnFull" title="Fullscreen (F)" aria-label="Fullscreen">
+            <svg viewBox="0 0 24 24" class="ico-expand"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
+            <svg viewBox="0 0 24 24" class="ico-compress"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /></svg>
+          </button>
+        </div>
+      </footer>
+
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
