@@ -1,7 +1,7 @@
 {
   "title": "Setu Product catelougue FInal",
   "pdf": "catalogue.pdf",
-  "pageCount": 26,
+  "pageCount": 28,
   "aspectRatio": 0.7071,
   "pages": [
     {
@@ -133,6 +133,16 @@
       "index": 26,
       "src": "pages/page-026.webp",
       "thumb": "pages/thumbs/page-026.webp"
+    },
+    {
+      "index": 27,
+      "src": "pages/page-027.webp",
+      "thumb": "pages/thumbs/page-027.webp"
+    },
+    {
+      "index": 28,
+      "src": "pages/page-028.webp",
+      "thumb": "pages/thumbs/page-028.webp"
     }
   ]
 }

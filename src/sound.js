@@ -48,7 +48,7 @@ export class FlipSound {
     for (let i = 0; i < frames; i++) channel[i] = Math.random() * 2 - 1;
 
     this.bus = this.ctx.createGain();
-    this.bus.gain.value = 0.9;
+    this.bus.gain.value = 0.75;
     this.bus.connect(this.ctx.destination);
   }
 
@@ -78,30 +78,40 @@ export class FlipSound {
     const offset = Math.random() * 1.4;
 
     // Resonant sweep: the "whoosh" of the sheet passing through the air.
+    // The peak stays out of the 2-5 kHz band, which is where broadband noise
+    // starts to sound sibilant and harsh.
     const band = this.ctx.createBiquadFilter();
     band.type = 'bandpass';
-    band.Q.value = heavy ? 0.6 : 0.85;
-    const f0 = (heavy ? 320 : 620) * detune;
-    const fPeak = (heavy ? 1400 : 3000) * detune;
-    const f1 = (heavy ? 240 : 760) * detune;
+    band.Q.value = heavy ? 0.5 : 0.65;
+    const f0 = (heavy ? 260 : 420) * detune;
+    const fPeak = (heavy ? 900 : 1500) * detune;
+    const f1 = (heavy ? 220 : 620) * detune;
     band.frequency.setValueAtTime(f0, now);
     band.frequency.exponentialRampToValueAtTime(fPeak, now + dur * 0.42);
     band.frequency.exponentialRampToValueAtTime(f1, now + dur);
 
-    // Trim the low rumble so it sits on top of the mix.
+    // Trim the low rumble, but leave enough body that it reads as paper
+    // rather than a thin hiss.
     const cut = this.ctx.createBiquadFilter();
     cut.type = 'highpass';
-    cut.frequency.value = heavy ? 140 : 300;
+    cut.frequency.value = heavy ? 110 : 180;
 
-    // Amplitude envelope: fast attack, long ragged decay.
+    // Gentle roll-off across the top so nothing sharp survives the mix.
+    const soften = this.ctx.createBiquadFilter();
+    soften.type = 'lowpass';
+    soften.frequency.value = heavy ? 1500 : 2400;
+    soften.Q.value = 0.7;
+
+    // Amplitude envelope: eased in rather than snapped, so there is no click
+    // on the leading edge, then a long ragged decay.
     const env = this.ctx.createGain();
-    const peak = heavy ? 0.5 : 0.34;
+    const peak = heavy ? 0.22 : 0.16;
     env.gain.setValueAtTime(0.0001, now);
-    env.gain.exponentialRampToValueAtTime(peak, now + 0.05);
-    env.gain.exponentialRampToValueAtTime(peak * 0.34, now + dur * 0.55);
+    env.gain.exponentialRampToValueAtTime(peak, now + dur * 0.22);
+    env.gain.exponentialRampToValueAtTime(peak * 0.3, now + dur * 0.6);
     env.gain.exponentialRampToValueAtTime(0.0001, now + dur);
 
-    src.connect(cut).connect(band).connect(env).connect(this.bus);
+    src.connect(cut).connect(band).connect(soften).connect(env).connect(this.bus);
     src.start(now, offset, dur + 0.05);
     src.stop(now + dur + 0.05);
 
@@ -117,8 +127,8 @@ export class FlipSound {
 
     const env = this.ctx.createGain();
     env.gain.setValueAtTime(0.0001, at);
-    env.gain.exponentialRampToValueAtTime(0.24, at + 0.012);
-    env.gain.exponentialRampToValueAtTime(0.0001, at + 0.2);
+    env.gain.exponentialRampToValueAtTime(0.12, at + 0.03);
+    env.gain.exponentialRampToValueAtTime(0.0001, at + 0.22);
 
     osc.connect(env).connect(this.bus);
     osc.start(at);

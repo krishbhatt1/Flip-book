@@ -71,6 +71,7 @@ only occupies half of the spread.
 scripts/prerender.mjs   PDF -> WebP pages, thumbnails, manifest
 scripts/shot.mjs        dev-only screenshot pass (needs the dev server running)
 scripts/probe.mjs       dev-only layout geometry dump
+scripts/audio-check.mjs dev-only loudness/tone measurement for the turn sound
 src/main.js             viewer: build, navigation, zoom, thumbnails, controls
 src/sound.js            Web Audio page-turn synthesis
 src/styles.css          styling
