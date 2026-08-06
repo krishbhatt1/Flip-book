@@ -1,19 +1,25 @@
+import turnUrl from './assets/page-turn.m4a';
+
 /**
- * Page-turn audio, synthesised with the Web Audio API.
+ * Page-turn audio.
  *
- * A paper turn is essentially a burst of broadband noise whose resonance
- * sweeps up as the sheet accelerates and back down as it settles. Generating
- * it means no audio file to download, and every turn can be slightly detuned
- * so repeated flips never sound looped.
+ * Plays a recorded paper-turn sample. The sample has plenty of headroom, so
+ * it is attenuated hard on the way out: the aim is something you notice
+ * without it competing with the page. If the file fails to load or decode,
+ * playback falls back to a synthesised turn so the book is never silent.
  */
 
 const STORAGE_KEY = 'flipbook:muted';
 
+/** Output level per turn type. Raise these if the turn is too quiet. */
+const LEVEL = { page: 0.32, hard: 0.45 };
+
 export class FlipSound {
   constructor() {
     this.ctx = null;
-    this.noise = null;
     this.bus = null;
+    this.sample = null;
+    this.noise = null;
     this.muted = localStorage.getItem(STORAGE_KEY) === '1';
     this.lastPlay = 0;
   }
@@ -33,7 +39,7 @@ export class FlipSound {
   unlock() {
     if (this.muted) return;
     if (!this.ctx) this.#build();
-    if (this.ctx.state === 'suspended') this.ctx.resume();
+    if (this.ctx?.state === 'suspended') this.ctx.resume();
   }
 
   #build() {
@@ -41,15 +47,21 @@ export class FlipSound {
     if (!Ctx) return;
     this.ctx = new Ctx();
 
-    // Two seconds of white noise, reused as the source for every turn.
-    const frames = Math.floor(this.ctx.sampleRate * 2);
-    this.noise = this.ctx.createBuffer(1, frames, this.ctx.sampleRate);
-    const channel = this.noise.getChannelData(0);
-    for (let i = 0; i < frames; i++) channel[i] = Math.random() * 2 - 1;
-
     this.bus = this.ctx.createGain();
-    this.bus.gain.value = 0.75;
+    this.bus.gain.value = 0.9;
     this.bus.connect(this.ctx.destination);
+
+    this.#loadSample();
+  }
+
+  async #loadSample() {
+    try {
+      const res = await fetch(turnUrl);
+      const bytes = await res.arrayBuffer();
+      this.sample = await this.ctx.decodeAudioData(bytes);
+    } catch {
+      this.sample = null; // synthesised fallback takes over
+    }
   }
 
   /**
@@ -66,44 +78,83 @@ export class FlipSound {
     if (now - this.lastPlay < 0.12) return;
     this.lastPlay = now;
 
+    if (this.sample) this.#playSample(kind, now);
+    else this.#playSynth(kind, now);
+  }
+
+  #playSample(kind, now) {
+    const heavy = kind === 'hard';
+
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.sample;
+    // Covers are stiffer board, so they read slower and deeper. The jitter
+    // keeps consecutive turns from sounding like a looped clip.
+    src.playbackRate.value = heavy
+      ? 0.84 + Math.random() * 0.06
+      : 0.95 + Math.random() * 0.14;
+
+    // Shave the very top so the turn stays soft alongside the artwork.
+    const soften = this.ctx.createBiquadFilter();
+    soften.type = 'lowpass';
+    soften.frequency.value = heavy ? 3600 : 5200;
+    soften.Q.value = 0.7;
+
+    // Tiny ramp in to avoid a click on the leading edge; the sample decays
+    // naturally so it needs no fade out.
+    const env = this.ctx.createGain();
+    const level = LEVEL[kind] ?? LEVEL.page;
+    env.gain.setValueAtTime(0, now);
+    env.gain.linearRampToValueAtTime(level, now + 0.015);
+
+    src.connect(soften).connect(env).connect(this.bus);
+    src.start(now);
+  }
+
+  /* ---- Fallback: synthesised turn, used only if the sample is missing ---- */
+
+  #noiseBuffer() {
+    if (this.noise) return this.noise;
+    const frames = Math.floor(this.ctx.sampleRate * 2);
+    this.noise = this.ctx.createBuffer(1, frames, this.ctx.sampleRate);
+    const channel = this.noise.getChannelData(0);
+    for (let i = 0; i < frames; i++) channel[i] = Math.random() * 2 - 1;
+    return this.noise;
+  }
+
+  #playSynth(kind, now) {
     const heavy = kind === 'hard';
     const dur = heavy ? 0.5 : 0.38 + Math.random() * 0.08;
     const detune = 0.88 + Math.random() * 0.26;
 
     const src = this.ctx.createBufferSource();
-    src.buffer = this.noise;
+    src.buffer = this.#noiseBuffer();
     src.loop = true;
     src.playbackRate.value = detune;
-    // Start at a random offset so the noise grain differs each time.
     const offset = Math.random() * 1.4;
 
-    // Resonant sweep: the "whoosh" of the sheet passing through the air.
-    // The peak stays out of the 2-5 kHz band, which is where broadband noise
-    // starts to sound sibilant and harsh.
+    // Sweep peak stays out of 2-5 kHz, where broadband noise turns sibilant.
     const band = this.ctx.createBiquadFilter();
     band.type = 'bandpass';
     band.Q.value = heavy ? 0.5 : 0.65;
-    const f0 = (heavy ? 260 : 420) * detune;
-    const fPeak = (heavy ? 900 : 1500) * detune;
-    const f1 = (heavy ? 220 : 620) * detune;
-    band.frequency.setValueAtTime(f0, now);
-    band.frequency.exponentialRampToValueAtTime(fPeak, now + dur * 0.42);
-    band.frequency.exponentialRampToValueAtTime(f1, now + dur);
+    band.frequency.setValueAtTime((heavy ? 260 : 420) * detune, now);
+    band.frequency.exponentialRampToValueAtTime(
+      (heavy ? 900 : 1500) * detune,
+      now + dur * 0.42
+    );
+    band.frequency.exponentialRampToValueAtTime(
+      (heavy ? 220 : 620) * detune,
+      now + dur
+    );
 
-    // Trim the low rumble, but leave enough body that it reads as paper
-    // rather than a thin hiss.
     const cut = this.ctx.createBiquadFilter();
     cut.type = 'highpass';
     cut.frequency.value = heavy ? 110 : 180;
 
-    // Gentle roll-off across the top so nothing sharp survives the mix.
     const soften = this.ctx.createBiquadFilter();
     soften.type = 'lowpass';
     soften.frequency.value = heavy ? 1500 : 2400;
     soften.Q.value = 0.7;
 
-    // Amplitude envelope: eased in rather than snapped, so there is no click
-    // on the leading edge, then a long ragged decay.
     const env = this.ctx.createGain();
     const peak = heavy ? 0.22 : 0.16;
     env.gain.setValueAtTime(0.0001, now);

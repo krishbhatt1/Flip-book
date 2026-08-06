@@ -1,10 +1,11 @@
 /**
- * Dev-only: renders the old and new page-turn synthesis offline and reports
- * loudness plus how much energy sits in the harsh 2 kHz+ region.
+ * Dev-only: confirms the page-turn sample decodes in the browser and reports
+ * how loud it is once the viewer's gain and filtering are applied.
  */
 import puppeteer from 'puppeteer-core';
 
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const TARGET = process.env.URL ?? 'http://localhost:5173/';
 
 const browser = await puppeteer.launch({
   executablePath: CHROME,
@@ -12,144 +13,75 @@ const browser = await puppeteer.launch({
   args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required'],
 });
 const page = await browser.newPage();
-await page.goto('http://localhost:5173/', { waitUntil: 'domcontentloaded' });
 
-const result = await page.evaluate(async () => {
-  const SR = 48000;
+let sampleUrl = null;
+page.on('response', (r) => {
+  if (/\.m4a(\?|$)/.test(r.url())) sampleUrl = r.url();
+});
 
-  // Deterministic settings (no random detune) so the two are comparable.
-  const PRESETS = {
-    old: {
-      busGain: 0.9,
-      peak: 0.34,
-      dur: 0.42,
-      hp: 300,
-      q: 0.85,
-      f0: 620,
-      fPeak: 3000,
-      f1: 760,
-      lowpass: null,
-      attackFrac: 0.05 / 0.42,
-    },
-    new: {
-      busGain: 0.75,
-      peak: 0.16,
-      dur: 0.42,
-      hp: 180,
-      q: 0.65,
-      f0: 420,
-      fPeak: 1500,
-      f1: 620,
-      lowpass: 2400,
-      attackFrac: 0.22,
-    },
-  };
+await page.goto(TARGET, { waitUntil: 'networkidle2' });
+// The sample is only fetched once audio is unlocked by a gesture.
+await page.click('#btnNext').catch(() => {});
+await new Promise((r) => setTimeout(r, 2500));
 
-  function render(p, hpAnalysis) {
-    const dur = p.dur;
-    const ctx = new OfflineAudioContext(1, Math.ceil(SR * (dur + 0.1)), SR);
+if (!sampleUrl) {
+  console.error('  FAIL: the viewer never requested the page-turn sample.');
+  await browser.close();
+  process.exit(1);
+}
 
-    const frames = SR * 2;
-    const noise = ctx.createBuffer(1, frames, SR);
-    const ch = noise.getChannelData(0);
-    // Fixed seed so both presets see identical noise.
-    let seed = 12345;
-    for (let i = 0; i < frames; i++) {
-      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-      ch[i] = (seed / 0x3fffffff) - 1;
-    }
+const out = await page.evaluate(async (levels, url) => {
+  // Decode the exact asset the viewer itself fetched.
+  const bytes = await (await fetch(url)).arrayBuffer();
 
+  const probe = new AudioContext();
+  const decoded = await probe.decodeAudioData(bytes.slice(0));
+  await probe.close();
+
+  const render = async (level, lowpass, rate) => {
+    const frames = Math.ceil((decoded.duration / rate + 0.1) * 48000);
+    const ctx = new OfflineAudioContext(1, frames, 48000);
     const src = ctx.createBufferSource();
-    src.buffer = noise;
-    src.loop = true;
-
-    const cut = ctx.createBiquadFilter();
-    cut.type = 'highpass';
-    cut.frequency.value = p.hp;
-
-    const band = ctx.createBiquadFilter();
-    band.type = 'bandpass';
-    band.Q.value = p.q;
-    band.frequency.setValueAtTime(p.f0, 0);
-    band.frequency.exponentialRampToValueAtTime(p.fPeak, dur * 0.42);
-    band.frequency.exponentialRampToValueAtTime(p.f1, dur);
-
-    const env = ctx.createGain();
-    env.gain.setValueAtTime(0.0001, 0);
-    env.gain.exponentialRampToValueAtTime(p.peak, dur * p.attackFrac);
-    env.gain.exponentialRampToValueAtTime(p.peak * 0.3, dur * 0.6);
-    env.gain.exponentialRampToValueAtTime(0.0001, dur);
-
+    src.buffer = decoded;
+    src.playbackRate.value = rate;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = lowpass;
+    lp.Q.value = 0.7;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, 0);
+    g.gain.linearRampToValueAtTime(level, 0.015);
     const bus = ctx.createGain();
-    bus.gain.value = p.busGain;
-
-    let node = src.connect(cut).connect(band);
-    if (p.lowpass) {
-      const soften = ctx.createBiquadFilter();
-      soften.type = 'lowpass';
-      soften.frequency.value = p.lowpass;
-      soften.Q.value = 0.7;
-      node = node.connect(soften);
-    }
-    node = node.connect(env).connect(bus);
-
-    if (hpAnalysis) {
-      const probe = ctx.createBiquadFilter();
-      probe.type = 'highpass';
-      probe.frequency.value = 2000;
-      probe.Q.value = 0.7;
-      node = node.connect(probe);
-    }
-    node.connect(ctx.destination);
-
+    bus.gain.value = 0.9;
+    src.connect(lp).connect(g).connect(bus).connect(ctx.destination);
     src.start(0);
-    return ctx.startRendering();
-  }
-
-  const stats = async (name, p) => {
-    const full = await render(p, false);
-    const high = await render(p, true);
-    const d = full.getChannelData(0);
-    const h = high.getChannelData(0);
-
+    const buf = await ctx.startRendering();
+    const d = buf.getChannelData(0);
     let peak = 0;
     let sum = 0;
-    let sumH = 0;
     for (let i = 0; i < d.length; i++) {
       peak = Math.max(peak, Math.abs(d[i]));
       sum += d[i] * d[i];
-      sumH += h[i] * h[i];
     }
-    const rms = Math.sqrt(sum / d.length);
-    const rmsH = Math.sqrt(sumH / h.length);
-    return {
-      name,
-      peak: +peak.toFixed(4),
-      rms: +rms.toFixed(5),
-      highShare: +(rmsH / (rms || 1)).toFixed(3),
-    };
+    return { peak: +peak.toFixed(4), rms: +Math.sqrt(sum / d.length).toFixed(5) };
   };
 
-  return [await stats('old', PRESETS.old), await stats('new', PRESETS.new)];
-});
+  return {
+    duration: +decoded.duration.toFixed(3),
+    channels: decoded.numberOfChannels,
+    rate: decoded.sampleRate,
+    page: await render(levels.page, 5200, 1.02),
+    hard: await render(levels.hard, 3600, 0.87),
+  };
+}, { page: 0.32, hard: 0.45 }, sampleUrl);
 
-const [o, n] = result;
-const db = (a, b) => (20 * Math.log10(b / a)).toFixed(1);
-
-console.log('              peak     rms      energy>2kHz');
-for (const r of result) {
-  console.log(
-    `  ${r.name.padEnd(4)}  ${String(r.peak).padEnd(8)} ${String(r.rms).padEnd(
-      8
-    )} ${(r.highShare * 100).toFixed(1)}%`
-  );
-}
-console.log(`\n  peak change: ${db(o.peak, n.peak)} dB`);
-console.log(`  rms change:  ${db(o.rms, n.rms)} dB`);
+console.log(`  sample fetched: ${sampleUrl ?? '(not observed)'}`);
 console.log(
-  `  harsh (>2kHz) content: ${(o.highShare * 100).toFixed(1)}% -> ${(
-    n.highShare * 100
-  ).toFixed(1)}%`
+  `  decoded ok: ${out.duration}s, ${out.channels}ch @ ${out.rate} Hz\n`
 );
+console.log('  as played        peak     rms');
+console.log(`  page turn        ${out.page.peak}   ${out.page.rms}`);
+console.log(`  cover turn       ${out.hard.peak}   ${out.hard.rms}`);
+console.log('\n  (softened synth was peak 0.0458 / rms 0.00722)');
 
 await browser.close();

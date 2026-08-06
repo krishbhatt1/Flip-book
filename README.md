@@ -7,10 +7,28 @@ page-curl turn, synthesised page-turn audio, thumbnails, zoom and fullscreen.
 
 The PDF is rasterised once, ahead of time, into WebP page images plus
 thumbnails. The viewer then only ever loads images, so the first spread appears
-in well under a second instead of pulling a 27 MB PDF down the wire. The curl
-animation comes from [`page-flip`](https://github.com/Nodlik/StPageFlip); the
-page-turn sound is generated at runtime with the Web Audio API, so there is no
-audio file to ship.
+in well under a second instead of pulling a 40 MB PDF down the wire. The curl
+animation comes from [`page-flip`](https://github.com/Nodlik/StPageFlip).
+
+## Sound
+
+The turn plays a recorded paper sample (`src/assets/page-turn.m4a`, 13 kB),
+attenuated well below its recorded level and rolled off at the top so it sits
+under the artwork rather than over it. Covers play slower and deeper than
+inner sheets, and a small random pitch jitter stops consecutive turns from
+sounding like a looped clip. If the file ever fails to load or decode, playback
+falls back to a synthesised turn so the book is never silent.
+
+Volume lives in the `LEVEL` constant at the top of `src/sound.js` — raise
+`page` and `hard` to make turns louder.
+
+The sample is a Mixkit sound effect, converted from the original WAV with:
+
+```bash
+afconvert -f m4af -d aac -b 64000 page-turn.wav src/assets/page-turn.m4a
+```
+
+Check the licence terms at source before shipping it in client work.
 
 ## Setup
 
@@ -73,7 +91,8 @@ scripts/shot.mjs        dev-only screenshot pass (needs the dev server running)
 scripts/probe.mjs       dev-only layout geometry dump
 scripts/audio-check.mjs dev-only loudness/tone measurement for the turn sound
 src/main.js             viewer: build, navigation, zoom, thumbnails, controls
-src/sound.js            Web Audio page-turn synthesis
+src/sound.js            page-turn playback, with synthesised fallback
+src/assets/             page-turn.m4a
 src/styles.css          styling
 public/                 catalogue.pdf, manifest.json, pages/
 ```

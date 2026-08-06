@@ -3,3 +3,6 @@ dist/
 .shots/
 .DS_Store
 *.log
+
+# Source audio kept locally; the converted src/assets/page-turn.m4a is shipped.
+*.wav
