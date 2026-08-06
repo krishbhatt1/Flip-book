@@ -45,6 +45,28 @@ class NodeCanvasFactory {
 
 const pad = (n) => String(n).padStart(3, '0');
 
+/**
+ * Builds the 1200x630 card that WhatsApp, iMessage and social sites show when
+ * the link is shared. Without it they render a bare, untrustworthy-looking URL.
+ */
+async function writeSocialCard() {
+  const cover = await sharp(path.join(OUT_DIR, 'page-001.webp'))
+    .resize({ width: 980, height: 520, fit: 'inside' })
+    .toBuffer();
+
+  await sharp({
+    create: {
+      width: 1200,
+      height: 630,
+      channels: 3,
+      background: { r: 20, g: 17, b: 15 },
+    },
+  })
+    .composite([{ input: cover, gravity: 'centre' }])
+    .jpeg({ quality: 82, mozjpeg: true })
+    .toFile(path.join(ROOT, 'public', 'og-image.jpg'));
+}
+
 async function main() {
   const data = new Uint8Array(await fs.readFile(PDF_SRC));
 
@@ -100,6 +122,8 @@ async function main() {
     page.cleanup();
     process.stdout.write(`\r  rendered ${i}/${doc.numPages} pages`);
   }
+
+  await writeSocialCard();
 
   const meta = await doc.getMetadata().catch(() => null);
   const manifest = {
